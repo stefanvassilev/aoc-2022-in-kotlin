@@ -1,6 +1,3 @@
-import java.util.Arrays
-import java.util.ListResourceBundle
-
 fun main() {
     val input = readInput("Day01")
     println(part1(input))
