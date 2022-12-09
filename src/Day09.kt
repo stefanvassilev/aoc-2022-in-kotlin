@@ -27,7 +27,7 @@ class Node(val coordinates: Coordinates) {
 
 
 enum class MovementDirection {
-    UP, DOWN, LEFT, RIGHT;
+    UP, DOWN, LEFT, RIGHT, NONE;
 
     companion object {
         fun createFromLetter(letter: String): MovementDirection {
@@ -48,35 +48,55 @@ fun day9Part1(input: List<String>): Int {
     val head = Node(Coordinates(0, 0))
     val tail = Node(Coordinates(0, 0))
 
-
     val nextHeadPositions = getHeadMovements(input)
-
-
     for (nextMove in nextHeadPositions) {
         val oldHeadPosition = head.coordinates.copy()
         head.move(nextMove)
-
-        val directionFromCoordinates = getDirectionFromCoordinates(oldHeadPosition, head.coordinates)
-        var nextTailMove: Coordinates
-
-        val xChange = getXChange(head.coordinates.x - tail.coordinates.x)
-        val yChange = getYChange(head.coordinates.y - tail.coordinates.y)
-        nextTailMove = getNextTailMovement(directionFromCoordinates, xChange, yChange)
-
-        val tailNextCoordinates = Coordinates(tail.coordinates.x + nextTailMove.x, tail.coordinates.y + nextTailMove.y)
-        val overlapping = coordinatesOverlapping(tailNextCoordinates, head.coordinates)
-        if (overlapping || proximityIsLessThanOne(tail.coordinates, head.coordinates)) {
-            println("$directionFromCoordinates head: ${head.coordinates}, SKIP tail ${tail.coordinates} overlapping?:$overlapping")
-            continue
-        }
-
-        tail.addToHistory(tail.coordinates.copy())
-        tail.move(nextTailMove)
-        println("$directionFromCoordinates head: ${head.coordinates}, tail ${tail.coordinates}")
-
+        moveAdjacentNodes(head, tail, oldHeadPosition)
     }
 
     return tail.positionHistory.toSet().size + 1
+}
+
+fun day9Part2(input: List<String>): Int {
+    val nodes = ArrayList<Node>()
+    for (i in 0 until 10) {
+        nodes.add(Node(Coordinates(0, 0)))
+    }
+
+    val nextHeadPositions = getHeadMovements(input)
+
+    for (nextMove in nextHeadPositions) {
+        var leader = nodes[0]
+        var oldLeaderPosition: Coordinates
+        leader.move(nextMove)
+        for (follower in nodes.subList(1, nodes.size)) {
+            oldLeaderPosition = follower.coordinates.copy()
+            moveAdjacentNodes(leader, follower, oldLeaderPosition)
+            leader = follower
+
+        }
+    }
+
+    return nodes.last().positionHistory.toSet().size + 1
+}
+
+fun moveAdjacentNodes(head: Node, tail: Node, oldHeadPosition: Coordinates) {
+    val directionFromCoordinates = getDirectionFromCoordinates(oldHeadPosition, head.coordinates)
+
+    val xChange = getXChange(head.coordinates.x - tail.coordinates.x)
+    val yChange = getYChange(head.coordinates.y - tail.coordinates.y)
+    val nextTailMove = getNextTailMovement(directionFromCoordinates, xChange, yChange)
+
+    val tailNextCoordinates = Coordinates(tail.coordinates.x + nextTailMove.x, tail.coordinates.y + nextTailMove.y)
+    val overlapping = coordinatesOverlapping(tailNextCoordinates, head.coordinates)
+    if (overlapping || proximityIsLessThanOne(tail.coordinates, head.coordinates)) {
+        return
+    }
+
+    tail.addToHistory(tail.coordinates.copy())
+    tail.move(nextTailMove)
+
 }
 
 private fun getHeadMovements(input: List<String>): List<Coordinates> {
@@ -92,6 +112,7 @@ private fun getHeadMovements(input: List<String>): List<Coordinates> {
                 MovementDirection.DOWN -> changes.add(Coordinates(0, -1))
                 MovementDirection.LEFT -> changes.add(Coordinates(-1, 0))
                 MovementDirection.RIGHT -> changes.add(Coordinates(1, 0))
+                MovementDirection.NONE -> throw IllegalArgumentException("")
             }
         }
         changes
@@ -116,6 +137,10 @@ private fun getNextTailMovement(directionFromCoordinates: MovementDirection, xCh
         MovementDirection.RIGHT -> {
             Coordinates(1, yChange)
 
+        }
+
+        MovementDirection.NONE -> {
+            Coordinates(0, 0)
         }
     }
 }
@@ -155,11 +180,5 @@ fun getDirectionFromCoordinates(cord1: Coordinates, cord2: Coordinates): Movemen
         yDelta < 0 -> return MovementDirection.DOWN
     }
 
-    throw IllegalArgumentException("no change in coordinates")
+    return MovementDirection.NONE
 }
-
-fun day9Part2(input: List<String>): Int {
-    return 0
-}
-
-
