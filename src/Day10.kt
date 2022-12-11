@@ -1,12 +1,11 @@
 fun main() {
     val input = readInput("Day10")
-    println(day10Part1(input))
-    println(day10Part2(input))
+    println(day10(input))
 
 }
 
 
-fun day10Part1(input: List<String>): Int {
+fun day10(input: List<String>): Int {
     val commands = input.map { it: String ->
         if (it.contains("addx")) {
             AddOp(it.substringAfter("addx ").toInt())
@@ -17,6 +16,8 @@ fun day10Part1(input: List<String>): Int {
     var xRegister = 1
     var signalStrength = 0
 
+    val crt = ArrayList<ArrayList<Char>>()
+    val curRow = ArrayList<Char>()
 
     val delayedComputations = HashMap<Int, ArrayList<Operation>>()
     var clock = 0
@@ -53,8 +54,24 @@ fun day10Part1(input: List<String>): Int {
             xRegister += opValue
         }
 
-//        println("current clock $i xRegister=$xRegister -> $operations")
+        if (curRow.size == 40) {
+            crt.add(ArrayList(curRow))
+            curRow.clear()
+        }
+        if (xRegister - 1 == curRow.size || xRegister == curRow.size || xRegister + 1 == curRow.size) {
+            curRow.add('#')
+        } else {
+            curRow.add('.')
+        }
+
         updateKeys(delayedComputations)
+    }
+
+    for (row in crt) {
+        for (pixel in row) {
+            print(pixel)
+        }
+        println()
     }
 
 
@@ -106,9 +123,4 @@ private fun completeOperation(op: Operation): Int {
         is AddOp -> op.operand
         else -> throw IllegalArgumentException("unknown operation")
     }
-}
-
-
-fun day10Part2(input: List<String>): Int {
-    return 0
 }
