@@ -58,7 +58,6 @@ fun day12Part1(input: List<String>): Int {
     calculateShortestPath(startNode)
     val endNode = findEndNode(startNode)
 
-    println("distance: ${dfs(startNode, endNode!!)}")
     println(endNode)
     println(endNode!!.distance)
 
