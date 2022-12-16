@@ -1,148 +1,45 @@
+import java.util.*
+
 fun main() {
-    val input = readInput("Day12-sample")
+    val input = readInput("Day12")
     println(day12Part1(input))
     println(day12Part2(input))
 
 }
 
 
-data class GraphNode(val elevation: Char, val x: Int, val y: Int, var distance: Int = Int.MAX_VALUE) {
-    val adjacent = ArrayList<GraphNode>()
-    val shortestPath = ArrayList<GraphNode>()
-}
+data class GraphNode(val elevation: Char, val x: Int, val y: Int)
 
 fun day12Part1(input: List<String>): Int {
     val map = input.map { it.toCharArray() }
-    val rowSize = map.size
-    val colSize = map[0].size
-    val (startX, startY) = getCoordinates(map, 'S')
-    val startNode = GraphNode(map[startX][startY], startX, startY)
+    val startCoords = getCoordinates(map, 'S')
+    val endCoords = getCoordinates(map, 'E')
 
-
-    val visited = HashSet<GraphNode>()
-    val toVisit = HashSet<GraphNode>()
-    toVisit.add(startNode)
-
-    while (toVisit.isNotEmpty()) {
-        val current = toVisit.first()
-
-        val adjacent = ArrayList<GraphNode>()
-        if (current.x + 1 < rowSize) {
-            adjacent.add(GraphNode(map[current.x + 1][current.y], current.x + 1, current.y))
-        }
-        if (current.x - 1 >= 0) {
-            adjacent.add(GraphNode(map[current.x - 1][current.y], current.x - 1, current.y))
-        }
-        if (current.y + 1 < colSize) {
-            adjacent.add(GraphNode(map[current.x][current.y + 1], current.x, current.y + 1))
-        }
-        if (current.y - 1 >= 0) {
-            adjacent.add(GraphNode(map[current.x][current.y - 1], current.x, current.y - 1))
-        }
-
-
-        if (current.elevation == 'E') {
-            println("current: ${current}")
-        }
-
-        val reachableAdjacent = adjacent
-                .filter { isReachable(current.elevation, it.elevation) }
-                .filter { visited.none { tv -> tv.x == it.x && tv.y == it.y } }
-        toVisit.addAll(reachableAdjacent)
-        current.adjacent.addAll(reachableAdjacent)
-        toVisit.remove(current)
-        visited.add(current)
-    }
-
-    println(startNode)
-    calculateShortestPath(startNode)
-    val endNode = findEndNode(startNode)
-
-    println(endNode)
-    println(endNode!!.distance)
-
-    println("Shortest path")
-    endNode.shortestPath.forEach {
-        println("shortest path: $it")
-    }
-
-    return endNode!!.distance
-}
-
-fun findEndNode(node: GraphNode): GraphNode? {
-    if (node.elevation == 'E') {
-        return node
-    }
-    for (adj in node.adjacent) {
-        val res = findEndNode(adj)
-        if (res != null) {
-            return res
+    val nodes = HashMap<Pair<Int, Int>, GraphNode>()
+    for (x in map.indices) {
+        for (y in map[x].indices) {
+            nodes[Pair(x, y)] = GraphNode(map[x][y], x, y)
         }
     }
+    return getShortestPathFromPointToPoint(nodes, startCoords, endCoords)
 
-    return null
-}
-
-fun calculateShortestPath(start: GraphNode) {
-    start.distance = 0
-    val settled = HashSet<GraphNode>()
-
-    val unsettled = HashSet<GraphNode>()
-    unsettled.add(start)
-
-    while (unsettled.isNotEmpty()) {
-        val cur = getLowestDistanceNode(unsettled)
-        unsettled.remove(cur)
-        println("CUR: ${cur} neighbours: ${cur.adjacent}")
-        for (adj in cur.adjacent) {
-            if (!settled.contains(adj)) {
-                calculateLowestDistance(cur, adj)
-                unsettled.add(adj)
-            }
-        }
-        settled.add(cur)
-    }
-}
-
-
-private fun calculateLowestDistance(cur: GraphNode, adj: GraphNode) {
-    if (cur.distance + 1 < adj.distance) {
-        adj.distance = cur.distance + 1
-        adj.shortestPath.addAll(cur.shortestPath)
-        adj.shortestPath.add(cur)
-    }
-}
-
-fun getLowestDistanceNode(nodes: Set<GraphNode>): GraphNode {
-    var lowestDistance = Int.MAX_VALUE
-    var lowestDistanceNode: GraphNode? = null
-
-    for (node in nodes) {
-        if (node.distance < lowestDistance) {
-            lowestDistance = node.distance
-            lowestDistanceNode = node
-        }
-    }
-
-    return lowestDistanceNode!!
 }
 
 val elevationMap = listOf('a'..'z').flatten()
 
-fun isReachable(curElevation: Char, targetElevation: Char): Boolean {
-    if (targetElevation == 'E') {
-        return curElevation == 'z'
+fun height(char: Char): Int {
+    if (char == 'S') {
+        return 0
     }
-    if (curElevation == 'S') {
-        return targetElevation == 'a'
+    if (char == 'E') {
+        return 25
     }
-
-    return elevationMap.indexOf(targetElevation) <= elevationMap.indexOf(curElevation) + 1
+    return elevationMap.indexOf(char)
 }
 
 fun getCoordinates(map: List<CharArray>, elevation: Char): Pair<Int, Int> {
     for (row in map.indices) {
-        for (col in map.indices) {
+        for (col in map[0].indices) {
             if (map[row][col] == elevation) {
                 return Pair(row, col)
             }
@@ -151,8 +48,71 @@ fun getCoordinates(map: List<CharArray>, elevation: Char): Pair<Int, Int> {
     throw IllegalArgumentException("cannot find elevation")
 }
 
+fun getAllCoordinates(map: List<CharArray>, elevation: Char): List<Pair<Int, Int>> {
+    val pairs = HashSet<Pair<Int, Int>>()
+    for (row in map.indices) {
+        for (col in map[0].indices) {
+            val element = Pair(row, col)
+            if (map[row][col] == elevation && !pairs.contains(element)) {
+                pairs.add(element)
+            }
+        }
+    }
+
+    return pairs.toList()
+}
+
 
 fun day12Part2(input: List<String>): Int {
-    return 0
+    val map = input.map { it.toCharArray() }
+    val endCoord = getCoordinates(map, 'E')
+    val coordinates = getAllCoordinates(map, 'a')
+
+    val nodes = HashMap<Pair<Int, Int>, GraphNode>()
+    for (x in map.indices) {
+        for (y in map[x].indices) {
+            nodes[Pair(x, y)] = GraphNode(map[x][y], x, y)
+        }
+    }
+
+    val results = ArrayList<Int>()
+    for (startCoordinate in coordinates) {
+        val element = getShortestPathFromPointToPoint(nodes, startCoordinate, endCoord)
+        results.add(element)
+    }
+
+    return results.min()
+}
+
+private fun getShortestPathFromPointToPoint(nodes: HashMap<Pair<Int, Int>, GraphNode>, startCoords: Pair<Int, Int>, endCoords: Pair<Int, Int>): Int {
+    val startNode = nodes[startCoords]!!
+
+    val deque: Deque<Pair<GraphNode, Int>> = LinkedList()
+    deque.push(Pair(startNode, 0))
+    val visited = HashSet<GraphNode>()
+
+    while (true) {
+        if (deque.isEmpty()) {
+            return Int.MAX_VALUE
+        }
+        val (cur, steps) = deque.pollLast()
+        if (visited.contains(cur)) {
+            continue
+        }
+        visited.add(cur)
+        if (cur.x == endCoords.first && cur.y == endCoords.second) {
+            return steps
+        }
+
+
+        val neighbours = arrayOf(Pair(1, 0), Pair(-1, 0), Pair(0, 1), Pair(0, -1))
+        for (neighbour in neighbours) {
+            val neighbourCoords = Pair(cur.x + neighbour.first, cur.y + neighbour.second)
+            if (nodes.containsKey(neighbourCoords) && height(nodes[neighbourCoords]!!.elevation) <= height(cur.elevation) + 1) {
+                deque.push(Pair(nodes[neighbourCoords]!!, steps + 1))
+            }
+        }
+
+    }
 }
 
