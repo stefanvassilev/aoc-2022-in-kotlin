@@ -24,6 +24,54 @@ data class IntHolder(val int: Int) : ListElem {
 
 
 fun day13Part1(input: List<String>): Int {
+    val pairs = getPairsFromInput(input)
+
+    var sumOfIndexes = 0
+    var curPairIndex = 1
+    for (pair in pairs) {
+        val el1 = getEmbeddedList(pair.first)
+        val el2 = getEmbeddedList(pair.second)
+
+        if (pairInRightOrder(el1.list[0], el2.list[0]) > 0) {
+            sumOfIndexes += curPairIndex
+        }
+        curPairIndex++
+    }
+
+    return sumOfIndexes
+}
+
+fun day13Part2(input: List<String>): Int {
+    val pairs = getPairsFromInput(input)
+    val packets = pairs
+            .map { listOf(getEmbeddedList(it.first), getEmbeddedList(it.second)) }
+            .flatten().toMutableList()
+    packets.add(getEmbeddedList("[[2]]"))
+    packets.add(getEmbeddedList("[[6]]"))
+
+
+    var curPacket = 1
+    var dividerPacketIndex1 = -1
+    var dividerPacketIndex2 = -1
+    packets.sortedWith { o1, o2 -> pairInRightOrder(o1, o2) }
+            .reversed()
+            .forEach {
+                if (it.toString() == "[[[2]]]") {
+                    dividerPacketIndex1 = curPacket
+                }
+                if (it.toString() == "[[[6]]]") {
+                    dividerPacketIndex2 = curPacket
+                }
+                curPacket++
+            }
+
+    println("Index of divider packet 1: $dividerPacketIndex1")
+    println("Index of divider packet 2: $dividerPacketIndex2")
+
+    return dividerPacketIndex1 * dividerPacketIndex2
+}
+
+private fun getPairsFromInput(input: List<String>): ArrayList<Pair<String, String>> {
     val pairs = ArrayList<Pair<String, String>>()
     val tmp = ArrayList<String>()
 
@@ -36,24 +84,7 @@ fun day13Part1(input: List<String>): Int {
         tmp.add(inp)
     }
     pairs.add(Pair(tmp[0], tmp[1]))
-
-    var sumOfIndexes = 0
-    var curPairIndex = 1
-    for (pair in pairs) {
-        val el1 = getEmbeddedList(pair.first)
-        val el2 = getEmbeddedList(pair.second)
-
-        println("Input:\nData1: ${el1.list[0]}\nData2: ${el2.list[0]}")
-        if (pairInRightOrder(el1.list[0], el2.list[0]) > 0) {
-            println("correct order for pair: $curPairIndex")
-            sumOfIndexes += curPairIndex
-        } else {
-            println("NOT correct order for pair: $curPairIndex")
-        }
-        curPairIndex++
-    }
-
-    return sumOfIndexes
+    return pairs
 }
 
 private fun getEmbeddedList(str: String): EmbeddedList {
@@ -63,7 +94,6 @@ private fun getEmbeddedList(str: String): EmbeddedList {
 }
 
 fun pairInRightOrder(data1: ListElem, data2: ListElem): Int {
-    println("*** :\nData1: ${data1}\nData2: $data2")
     if (data1 is IntHolder && data2 is IntHolder) {
         return data2.int - data1.int
     }
@@ -150,8 +180,3 @@ private fun getClosingBracketIndex(inp: String): Int {
 }
 
 
-fun day13Part2(input: List<String>): Int {
-    return 0
-}
-
-//That's not the right answer; your answer is too low. If you're stuck, make sure you're using the full input data; there are also some general tips on the about page, or you can ask for hints on the subreddit. Please wait one minute before trying again. (You guessed 1197.) [Return to Day 13]
