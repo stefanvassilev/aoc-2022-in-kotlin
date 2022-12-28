@@ -46,6 +46,7 @@ fun day14Part1(input: List<String>): Int {
             println("Abyss reached: ${curPath.size}")
             break
         }
+
         if (isPathBlocked(matrix, bottom) && isPathBlocked(matrix, downLeft) && isPathBlocked(matrix, downRight)) {
             sandPointFound = true
         } else if (!isPathBlocked(matrix, bottom)) {
@@ -60,7 +61,6 @@ fun day14Part1(input: List<String>): Int {
         }
 
 
-//        println("potential spot: $potentialSpot sand point found?: $sandPointFound")
         if (sandPointFound) {
             curPath.add(Point(potentialSpot.x, potentialSpot.y))
             matrix[potentialSpot.y][potentialSpot.x] = 'o'
@@ -76,18 +76,87 @@ fun day14Part1(input: List<String>): Int {
 }
 
 fun day14Part2(input: List<String>): Int {
-    return 0
+    val lines = getLinesFromScan(input)
+
+    val points = lines.map { listOf(it.points.first, it.points.second) }.flatten()
+    val maxRightDistance = points.maxBy { it.x }.x
+    val minRightDistance = points.minBy { it.x }.x
+
+    val maxDownDistance = points.maxBy { it.y }.y
+    val minDownDistance = 0 //points.minBy { it.y }.y
+
+    val xOffset = 500
+    val matrix = createMatrixFromInput(maxDownDistance + 2, minDownDistance, maxRightDistance + 1000, minRightDistance, lines, xOffset = xOffset)
+    val sandPoint = Point(500 - minRightDistance + xOffset, 0)
+    matrix[sandPoint.y][sandPoint.x] = '+'
+
+    for (i in matrix[matrix.size - 1].indices) {
+        matrix[matrix.size - 1][i] = '#'
+    }
+
+
+    var sandPointFound = false
+    var potentialSpot = Point(sandPoint.x, sandPoint.y)
+
+    val curPath = LinkedList<Point>()
+    while (true) {
+        val neighbourPoints = getNeighbourPoints(matrix, potentialSpot)
+
+        val bottom = neighbourPoints[0]
+        val downLeft = neighbourPoints[1]
+        val downRight = neighbourPoints[2]
+
+
+        if (downLeft == null || downRight == null || bottom == null) {
+            println("Abyss reached: ${curPath.size}")
+            break
+        }
+        if (potentialSpot.x == sandPoint.x && potentialSpot.y == sandPoint.y &&
+                matrix[bottom.y][bottom.x] == 'o' &&
+                matrix[downLeft.y][downLeft.x] == 'o' &&
+                matrix[downRight.y][downRight.x] == 'o'
+        ) {
+            curPath.add(Point(potentialSpot.x, potentialSpot.y))
+            matrix[potentialSpot.y][potentialSpot.x] = 'o'
+            matrix.forEach { println(it.contentToString()) }
+            break
+        }
+
+        if (isPathBlocked(matrix, bottom) && isPathBlocked(matrix, downLeft) && isPathBlocked(matrix, downRight)) {
+            sandPointFound = true
+        } else if (!isPathBlocked(matrix, bottom)) {
+            potentialSpot.x = bottom.x
+            potentialSpot.y = bottom.y
+        } else if (!isPathBlocked(matrix, downLeft)) {
+            potentialSpot.x = downLeft.x
+            potentialSpot.y = downLeft.y
+        } else if (!isPathBlocked(matrix, downRight)) {
+            potentialSpot.x = downRight.x
+            potentialSpot.y = downRight.y
+        }
+
+
+        if (sandPointFound) {
+            curPath.add(Point(potentialSpot.x, potentialSpot.y))
+            matrix[potentialSpot.y][potentialSpot.x] = 'o'
+            sandPointFound = false
+            potentialSpot = Point(sandPoint.x, sandPoint.y)
+        }
+    }
+
+
+    return curPath.size
 }
 
-private fun createMatrixFromInput(maxDownDistance: Int, minDownDistance: Int, maxRightDistance: Int, minRightDistance: Int, lines: List<Line>): Array<Array<Char>> {
-    val matrix = Array<Array<Char>>(size = maxDownDistance - minDownDistance + 1) { Array(maxRightDistance - minRightDistance + 1) { '.' } }
+private fun createMatrixFromInput(maxDownDistance: Int, minDownDistance: Int, maxRightDistance: Int, minRightDistance: Int, lines: List<Line>, xOffset: Int = 0): Array<Array<Char>> {
+    val matrix = Array(size = maxDownDistance - minDownDistance + 1) { Array(maxRightDistance - minRightDistance + 1) { '.' } }
 
     println("size ${matrix.size}x${matrix[0].size}")
 
     for (line in lines) {
         val (firstPoint, secondPoint) = line.points
 
-        val xStart = min(firstPoint.x - minRightDistance, secondPoint.x - minRightDistance)
+        val xStart = min(firstPoint.x - minRightDistance, secondPoint.x - minRightDistance) + xOffset
         val xEnd = max(secondPoint.x - firstPoint.x, firstPoint.x - secondPoint.x) + xStart
 
         val yEnd = (if (firstPoint.y < secondPoint.y) secondPoint.y else firstPoint.y)
@@ -120,7 +189,7 @@ private fun createMatrixFromInput(maxDownDistance: Int, minDownDistance: Int, ma
 }
 
 private fun isPathBlocked(matrix: Array<Array<Char>>, point: Point?): Boolean {
-    println("neighbour point: $point")
+//    println("neighbour point: $point")
     return point != null && (matrix[point.y][point.x] == '#' || matrix[point.y][point.x] == 'o')
 }
 
@@ -138,9 +207,9 @@ private fun getNeighbourPoints(matrix: Array<Array<Char>>, potentialSpot: Point)
 }
 
 
-fun isNeighbourInBoundary(matrix: Array<Array<Char>>, neighbour: Pair<Int, Int>, freeSpot: Point): Boolean {
-    return (freeSpot.x + neighbour.first < matrix[0].size && freeSpot.x + neighbour.first >= 0) &&
-            (freeSpot.y + neighbour.second < matrix.size && freeSpot.y + neighbour.first >= 0)
+fun isNeighbourInBoundary(matrix: Array<Array<Char>>, neighbour: Pair<Int, Int>, potentialSpot: Point): Boolean {
+    return (potentialSpot.x + neighbour.first < matrix[0].size && potentialSpot.x + neighbour.first >= 0) &&
+            (potentialSpot.y + neighbour.second < matrix.size && potentialSpot.y + neighbour.second >= 0)
 }
 
 private fun getLinesFromScan(input: List<String>): List<Line> {
